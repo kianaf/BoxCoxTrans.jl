@@ -18,12 +18,15 @@ Keyword arguments:
 - α: added to all values in 𝐱 before transformation. Default = 0.
 - scaled: scale transformation results.  Default = false.
 """
-function transform(𝐱; kwargs...)
-    λ, details = lambda(𝐱; kwargs...)
+function transform(x; α = 0, kwargs...)
+    if α != 0
+        x .+= α
+    end
+    λ, details = lambda1(x; kwargs...)
     #@info "estimated lambda = $λ"
-    transform(𝐱, λ; kwargs...)
+    println(λ)
+    transform1(x, λ; kwargs...)
 end
-
 """
     transform(𝐱, λ; α = 0)
 
@@ -34,16 +37,16 @@ Keyword arguments:
 - α: added to all values in 𝐱 before transformation. Default = 0.
 - scaled: scale transformation results.  Default = false.
 """
-function transform(𝐱, λ; α = 0, scaled = false, kwargs...) 
+function transform(x, λ; α = 0, scaled = false, kwargs...)
     if α != 0
-        𝐱 .+= α
+        x .+= α
     end
-    any(𝐱 .<= 0) && throw(DomainError("Data must be positive and ideally greater than 1.  You may specify α argument(shift). "))
+    any(x .<= 0) && throw(DomainError("Data must be positive and ideally greater than 1.  You may specify α argument(shift). "))
     if scaled
-        gm = geomean(𝐱)
-        @. λ ≈ 0 ? gm * log(𝐱) : (𝐱 ^ λ - 1) / (λ * gm ^ (λ - 1))
+        gm = geomean(x)
+        @. λ ≈ 0 ? gm * log(x) : (x ^ λ - 1) / (λ * gm ^ (λ - 1))
     else
-        @. λ ≈ 0 ? log(𝐱) : (𝐱 ^ λ - 1) / λ
+        @. λ ≈ 0 ? log(x) : (x ^ λ - 1) / λ
     end
 end
 
@@ -58,9 +61,13 @@ Keyword arguments:
 
 See also: [`log_likelihood`](@ref)
 """
-function lambda(𝐱; interval = (-2.0, 2.0), kwargs...)
+function lambda(x ; α = 0 , interval = (-2.0, 2.0), kwargs...)
+    if α != 0
+        x .+= α
+    end
+
     i1, i2 = interval
-    res = optimize(λ -> -log_likelihood(𝐱, λ; kwargs...), i1, i2)
+    res = optimize(λ -> -log_likelihood1(x, λ; kwargs...), i1, i2)
     (value=minimizer(res), details=res)
 end
 
@@ -88,5 +95,27 @@ function log_likelihood(𝐱, λ; method = :geomean, kwargs...)
         throw(ArgumentError("Incorrect method. Please specify :geomean or :normal."))
     end
 end
+
+"""
+    retransform(𝐱, λ; α = 0)
+
+Retransform an array which is transformed using Box-Cox method with the provided power parameter λ and shift
+argument α to the oreginal array.
+
+Keyword arguments:
+- α: added to all values in 𝐱 before transformation. Default = 0.
+- scaled: scale transformation results.  Default = false.
+"""
+
+function retransform(x, λ; α = 0, scaled = false, kwargs...)
+    if scaled
+        gm = geomean(x)
+        @. λ ≈ 0 ? exp.(x / gm) - α  : (x * λ * gm ^ (λ -1) +1) ^ (1 / λ) - α
+    else
+        @. λ ≈ 0 ? exp.(x) - α : (λ * x + 1) ^ (1 / λ) - α
+    end
+end
+
+
 
 end # module
