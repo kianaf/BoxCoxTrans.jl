@@ -89,4 +89,24 @@ function log_likelihood(𝐱, λ; method = :geomean, kwargs...)
     end
 end
 
+""" 
+    retransform(x, λ; α = 0, scaled = false, kwargs...)
+
+Retransform an array which is transformed using Box-Cox method to the original array with the provided power parameter λ and 
+shift argument α. 
+
+Keyword arguments:
+- α: added to all values in 𝐱 before transformation. Default = 0.
+- scaled: scale transformation results.  Default = false.
+"""
+function retransform(x, λ; α = 0, scaled = false, kwargs...)
+    if scaled
+        gm = geomean(x)
+        @. λ ≈ 0 ? exp.(x / gm) - α  : (x * λ * gm ^ (λ -1) +1) ^ (1 / λ) - α
+    else
+        @. λ ≈ 0 ? exp.(x) - α : (λ * x + 1) ^ (1 / λ) - α
+    end
+end
+
+
 end # module
