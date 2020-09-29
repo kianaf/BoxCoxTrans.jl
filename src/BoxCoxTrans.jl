@@ -107,7 +107,7 @@ Keyword arguments:
 - scaled: scale transformation results.  Default = false.
 """
 
-function retransform(𝐱, λ; α = 0, scaled = false, kwargs...)
+function backtransform(𝐱, λ; α = 0, scaled = false, kwargs...)
     if scaled
         gm = geomean(𝐱)
         @. λ ≈ 0 ? exp.(𝐱 / gm) - α  : (𝐱 * λ * gm ^ (λ -1) +1) ^ (1 / λ) - α
